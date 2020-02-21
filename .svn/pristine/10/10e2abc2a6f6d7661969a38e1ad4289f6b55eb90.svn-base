@@ -1,0 +1,92 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Player : MonoBehaviour
+{
+    static public Player instance;
+    public bool isLive = true;
+    public Missile missile;
+    public float missileInterval = 0.1f;
+    private int level;
+    private int curExp;
+    public TextAsset csv;
+
+    public void AddExp(int addExp)
+    {
+        curExp += addExp;
+        level = curExp / 3 + 1;
+
+        print("AddExp addexp: " + addExp + " /exp: " + curExp + " /level: " + level);
+    }
+
+    private void Awake()
+    {
+        instance = this;
+    }
+
+    private void Start()
+    {
+        level = 1;
+
+        StartCoroutine(GeneratMissileCo());
+    }
+
+    IEnumerator GeneratMissileCo()
+    {
+        while (isLive)
+        {
+            // 시작 하지 않으면 제외
+            if (GameManager.instance.isStart == false)
+            {
+                yield return null;
+                continue;
+            }
+
+            // 마우스를 눌렀을때 미사일 발사
+            if (Input.GetButton("Shoot"))
+            {
+                Missile newMissile = Instantiate(missile);
+                newMissile.transform.position = transform.position;
+                newMissile.name = "Missile";
+            }
+           
+            yield return new WaitForSeconds(missileInterval);
+        }
+    }
+
+    void Update()
+    {
+        // 시작 하지 않으면 리턴.
+        if (GameManager.instance.isStart == false)
+            return;
+
+        if (isLive == false)
+            return;
+
+        // 카메라가 바라보는 마우스 X좌표
+        Vector3 mousePostion = new Vector3(Input.mousePosition.x, Input.mousePosition.y, 0);
+        float playerPosX = Camera.main.ScreenToWorldPoint(mousePostion).x;
+
+        // 마우스 좌표 보정
+        if (playerPosX > 2.4)
+            playerPosX = 2.4f;
+        else if (playerPosX < -2.4)
+            playerPosX = -2.4f;
+
+        // 이동
+        transform.position = new Vector3(playerPosX, transform.position.y, 0);
+    }
+
+    public void Die()
+    {
+        print("Game Over!");
+        Player.instance.isLive = false;
+        Time.timeScale = 0;
+
+        // 게임 오버 UI 띄우기
+        InGameUI.instance.OpenGameOverUI();
+    }
+
+
+}
